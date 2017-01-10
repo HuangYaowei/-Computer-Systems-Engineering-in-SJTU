@@ -1,4 +1,4 @@
-﻿0	0	39.497277	-76.232232	2010-08-10 14:35:18	0	coffee|espresso|rest|stop|shop|shops|
+﻿1	0	39.497277	-76.232232	2010-08-10 14:35:18	0	coffee|espresso|rest|stop|shop|shops|
 0	1	39.856301	-75.076342	2010-08-10 16:00:28	1	atm|convenience|store|gas|deli|bodega|delis|bodegas|
 0	2	39.376797	-74.435366	2010-08-10 18:45:42	2	casino|concert|hall|entertainment|gambling|gym|hotel|karaoke|music|venue|nightclub|nightlife|pizza|poker|pool|shopping|slots|spa|vh1|casinos|resort|resorts|hotels|
 0	3	39.376797	-74.435366	2010-08-11 00:49:08	3	borgata|noodles|pho|ramen|noodle|house|chinese|restaurant|restaurants|asian|
