@@ -1,0 +1,369 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage{ctex}
+\usepackage{float}
+\usepackage{amsmath,amscd,amsbsy,amssymb,latexsym,url,bm,amsthm}
+\usepackage{epsfig,graphicx,subfigure}
+\usepackage{enumitem,balance,mathtools}
+\usepackage{wrapfig}
+\usepackage{mathrsfs, euscript}
+\usepackage[usenames]{xcolor}
+\usepackage{hyperref}
+%\usepackage{algorithm}
+\usepackage[T1]{fontenc}
+\usepackage{algorithmic}
+%\usepackage[vlined,ruled,commentsnumbered,linesnumbered]{algorithm2e}
+\usepackage[ruled,lined,boxed,linesnumbered]{algorithm2e}
+\usepackage{xcolor}
+\usepackage{listings}
+%\floatname{algorithm}{Solution}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{exercise}{Exercise}[section]
+\newtheorem*{solution}{Solution}
+
+\renewcommand{\thefootnote}{\fnsymbol{footnote}}
+
+\newcommand{\postscript}[2]
+ {\setlength{\epsfxsize}{#2\hsize}
+  \centerline{\epsfbox{#1}}}
+
+\renewcommand{\baselinestretch}{1.0}
+
+\setlength{\oddsidemargin}{-0.365in}
+\setlength{\evensidemargin}{-0.365in}
+\setlength{\topmargin}{-0.3in}
+\setlength{\headheight}{0in}
+\setlength{\headsep}{0in}
+\setlength{\textheight}{10.1in}
+\setlength{\textwidth}{7in}
+\makeatletter \renewenvironment{proof}[1][Proof] {\par\pushQED{\qed}\normalfont\topsep6\p@\@plus6\p@\relax\trivlist\item[\hskip\labelsep\bfseries#1\@addpunct{.}]\ignorespaces}{\popQED\endtrivlist\@endpefalse} \makeatother
+\makeatletter
+\renewenvironment{solution}[1][Solution] {\par\pushQED{\qed}\normalfont\topsep6\p@\@plus6\p@\relax\trivlist\item[\hskip\labelsep\bfseries#1\@addpunct{.}]\ignorespaces}{\popQED\endtrivlist\@endpefalse} \makeatother
+\begin{document}
+\noindent
+
+\lstset
+{
+	basicstyle=\ttfamily,
+	numbers=left,
+	keywordstyle=\color[RGB]{0,0,255},
+	commentstyle=\color[RGB]{0,128,0},
+	frame=shadowbox,
+	rulesepcolor=\color{red!20!green!20!blue!20},
+	showspaces=false,
+	extendedchars=false,
+	showtabs=false,
+	tabsize=4, breaklines
+}
+
+%\floatname{algorithm}{Solution}
+%========================================================================
+\noindent\framebox[\linewidth]{\shortstack[c]{
+\Large{\textbf{OS Project 3 - Matrix Multiplication }}\vspace{1mm}\\
+Project for Computer Architecture \& Operating Systems by Chentao Wu, 2016 Autumn Semester}}
+~\\
+~\\
+\begin{large}
+\textbf{1. Project Introduction:}
+\end{large}
+~\\
+Given two matrices A and B, where A is a matrix with M rows and K columns and matrix B contains K rows and N columns, the matrix product of A and B is matrix C, where C contains M rows and N columns. The entry in matrix C for row i column j $(C_{i:j})$ is the sum of the products of the elements for row i in matrix A and column j in matrix B. That is,
+
+$C_{i,j}=\sum\limits_{n=1}^{K}A_{i,n}B_{n,j}$
+
+It is consisted by two steps: 
+
+\quad 1. Passing Parameters to Each Thread
+
+\quad 2. Waiting for Threads to Complete
+
+~\\
+~\\
+\begin{large}
+\textbf{2. Project Environment:}
+\end{large}
+~\\
+
+VirtualBox with Linux Ubuntu 16.04.
+
+Windows 10 
+~\\
+~\\
+\begin{large}
+\textbf{3. Project Realization:}
+\end{large}
+~\\
+
+There're two steps: Passing Parameters to Each Thread and Waiting for Threads to Complete.
+
+~\\
+ \textbf{Part1 Passing Parameters to Each Thread }
+
+The parent thread will create $M \times N$ worker threads, passing each worker the values of row i and column / that it is to use in calculating the matrix product. This requires passing two parameters to each thread. The easiest approach with Pthreads and Win32 is to create a data structure using a struct. The members of this structure are i and j, and the structure appears as follows:
+
+\begin{lstlisting}[language=C++]
+//struct for passing data to threads
+struct v
+{
+	int i; //row
+	int j; //column
+};
+\end{lstlisting}
+
+Both the Pthreads and Win32 programs will create the worker threads using a strategy similar. The data pointer will be passed to either the pthread.create() (Pthreads) function or the CreateThreadO (Win32) function, which in turn will pass it as a parameter to the function that is to run as a separate thread. 
+\begin{lstlisting}[language=C++]
+//for (int i = 0; i < 1, i + + ) 
+	for(int j=0;j<NUM_THREADS;++j)
+	{
+		struct v *data=(struct v*)malloc(sizeof(struct v));
+		data->i=0;
+		data->j=j;
+		pthread_create(&workers[tmp],&attr,run,data);
+		//create thread, run is the start_routine and data is the arg
+		++tmp;
+		if(tmp==NUM_THREADS)
+		{
+			for(int x=0;x<NUM_THREADS;++x)
+			{
+				pthread_join(workers[x],NULL);
+			}
+		}
+	}
+//}
+\end{lstlisting}
+
+And here I didn't create $M \times N$ threads, and I will explain it now:
+
+\quad The thread is resouce-expending, and a common personal computer can only run approximately 10 threads synchronously, and I have tried creating 100 threads to run, the result is that the speed up of computing didn't improve. So the performance will not improve infinitely as the threads increasing, when the threads' number is large, only part of them will execute, and the rest will wait in the queue. What's more, when I use the Linux in VirtualBox, I found that the time will not change, I will talk later at the {\bf The problem I have met}. So I only created ten threads and divided the tasks equallty to them.
+
+\begin{lstlisting}[language=C++]
+inline void *run(void *data)
+{
+	int sum=0;
+	struct v *d=(struct v*)data;
+	// redefine data
+	int j=d->j;
+	// i=d->i i = 0; To allocate the thread 
+	for (int m = j; m<M ; m+=NUM_THREADS) //row
+	{	
+		for (int n = 0; n < N; ++n)
+		{
+			sum=0;
+			for (int e = 0; e < K; ++e)
+			{
+				sum+=A[m][e]*B[e][n];
+			}
+			C[m][n]=sum;
+		}
+	}
+	pthread_exit(0);
+}
+\end{lstlisting}
+
+~\\
+\textbf{Part2 Waiting for Threads to Complete}
+
+Once all worker threads have completed, the main thread will output the product contained in matrix C. This requires the main thread to wait for all worker threads to finish before it can output the value of the matrix product. Several different strategies can be used to enable a thread to wait for other threads to finish. 
+
+As we can see in the former code, I used a thread count to wait for threads, if $tmp(count)==NUM\_THREADS$, the program will use $pthread_join()$ to enclose the join operation within a simple for loop.
+~\\
+~\\
+\begin{large}
+\textbf{4. Project Result:}
+\end{large}
+I made a simple comparation between the time program running with thread and without thread. Here's the result: 
+\begin{enumerate}
+
+\item Windows with 10 threads
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\textwidth]{windows.png}
+  \caption{Result: Windows with 10 threads}%\label{fig:digit}
+\end{figure}
+\item Windows with 100 threads
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\textwidth]{windows2.png}
+  \caption{Result: Windows with 100 threads}%\label{fig:digit}
+\end{figure}
+\item  Linux with 10 threads(single CPU) in VirtualBox
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\textwidth]{linux.png}
+  \caption{Result: Linux with 10 threads(single CPU)}%\label{fig:digit}
+\end{figure}
+\item Linux with 10 threads(Four CPU) in VirtualBox
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\textwidth]{linux2.png}
+  \caption{Result: Linux with 10 threads(Four CPU)}%\label{fig:digit}
+\end{figure}
+
+
+\end{enumerate}
+
+\begin{large}
+~\\
+~\\
+\textbf{5. The problem I have met}
+\end{large}
+
+As we can see in the {\bf Result}: at first I find that the time is almost same in the VirtualBox's Linux, and I googled it online, finding that the linux creating by VirtualBox will only be allocated one CPU at first, as a result, the thread is a trick in such environment, because the Linux can only run one thread at a time, which made no diffrence to calculating without threads. And after I changed the setting:
+
+Then the time speed-up is regained.
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\textwidth]{setting.png}
+  \caption{Result: Setting}%\label{fig:digit}
+\end{figure}
+
+\begin{large}
+~\\
+~\\
+\textbf{6. Harvest}
+\end{large}
+
+Through this project I learned a lot knowledge about thread and how to initial and create the threads at a program. And dealing with the problem about linux with multiprocessors makes me understand the threads more deeply. The operating system is a very fun thing to manipulate, and solving problems makes me very proudable.
+
+
+
+\begin{large}
+~\\
+~\\
+\textbf{7. Code}
+\end{large}
+\begin{lstlisting}[language=C++]
+#include <pthread.h>
+#include <stdio.h>
+#include <malloc.h>
+#include <sys/time.h>
+#include <time.h>
+#include <stdlib.h>
+#include <ctime>
+
+#define M 1000
+#define K 1000
+#define N 1000
+#define NUM_THREADS 10
+
+int A[M][K];
+int B[K][N];
+int C[M][N];
+int D[M][N];
+
+//struct for passing data to threads
+struct v
+{
+	int i; //row
+	int j; //column
+};
+
+inline void *run(void *data)
+{
+	int sum=0;
+	struct v *d=(struct v*)data;
+	// redefine data
+	int j=d->j;
+	// i=d->i i = 0; To allocate the thread 
+	for (int m = j; m<M ; m+=NUM_THREADS) //row
+	{	
+		for (int n = 0; n < N; ++n)
+		{
+			sum=0;
+			for (int e = 0; e < K; ++e)
+			{
+				sum+=A[m][e]*B[e][n];
+			}
+			C[m][n]=sum;
+		}
+	}
+	pthread_exit(0);
+}
+
+
+
+int main(){
+	printf("The number of threads: %d \n", NUM_THREADS);
+	struct timeval start, end, start2, end2;
+	pthread_t workers[NUM_THREADS]; //300 pthread
+	pthread_attr_t attr; //To initial the pthread attrbute
+	pthread_attr_init(&attr); 
+	
+	//initialize
+	srand(unsigned(time(0)));
+	for(int i=0;i<M;++i)
+	{
+		for(int j=0;j<N;++j)
+		{
+			A[i][j]=rand()%100;
+			B[i][j]=rand()%100;
+		}
+	}
+	//parallel calculate 
+	gettimeofday(&start, NULL);
+	int tmp = 0;
+//for (int i = 0; i < 1, i + + ) 
+	for(int j=0;j<NUM_THREADS;++j)
+	{
+		struct v *data=(struct v*)malloc(sizeof(struct v));
+		data->i=0;
+		data->j=j;
+		pthread_create(&workers[tmp],&attr,run,data);
+		//create thread, run is the start_routine and data is the arg
+		++tmp;
+		if(tmp==NUM_THREADS)
+		{
+			for(int x=0;x<NUM_THREADS;++x)
+			{
+				pthread_join(workers[x],NULL);
+			}
+		}
+	}
+//}
+	gettimeofday(&end, NULL);
+	int timeuse = 1000000 * (end.tv_sec - start.tv_sec) + end.tv_usec - start.tv_usec;
+	printf("The time of pthread is: %d usec \n", timeuse);
+	
+	//direct calculate 
+	gettimeofday(&start2, NULL);
+	int sum;
+	for(int i=0;i<M;++i)
+	{
+		for(int j=0;j<N;++j)
+		{
+			sum=0;
+			for(int e=0;e<K;++e)
+			{
+				sum+=A[i][e]*B[e][j];
+			}
+			D[i][j]=sum;
+		}
+	}
+	gettimeofday(&end2, NULL);
+	int timeuse2 = 1000000*(end2.tv_sec-start2.tv_sec)+end2.tv_usec-start2.tv_usec;
+	printf("The time of no thread is: %d usec \n",timeuse2);
+	double timeuse2_dou = timeuse2;
+	printf("The speed up of threading is: %f \n", timeuse2_dou/timeuse );
+	for(int i=0;i<M;++i)
+	{
+		for(int j=0;j<N;++j)
+		{
+			if(C[i][j]!=D[i][j]) 
+			{
+				printf("i: %d j: %d C: %d D: %d\n",i,j,C[i][j],D[i][j]);
+			}
+		}
+
+	}
+	return 0;
+}
+
+\end{lstlisting}
+
+
+
+
+%========================================================================
+\end{document}

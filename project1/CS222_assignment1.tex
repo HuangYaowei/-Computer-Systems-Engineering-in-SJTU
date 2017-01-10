@@ -1,0 +1,277 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage{ctex}
+\usepackage{float}
+\usepackage{amsmath,amscd,amsbsy,amssymb,latexsym,url,bm,amsthm}
+\usepackage{epsfig,graphicx,subfigure}
+\usepackage{enumitem,balance,mathtools}
+\usepackage{wrapfig}
+\usepackage{mathrsfs, euscript}
+\usepackage[usenames]{xcolor}
+\usepackage{hyperref}
+%\usepackage{algorithm}
+\usepackage[T1]{fontenc}
+\usepackage{algorithmic}
+%\usepackage[vlined,ruled,commentsnumbered,linesnumbered]{algorithm2e}
+\usepackage[ruled,lined,boxed,linesnumbered]{algorithm2e}
+\usepackage{xcolor}
+\usepackage{listings}
+%\floatname{algorithm}{Solution}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{exercise}{Exercise}[section]
+\newtheorem*{solution}{Solution}
+
+\renewcommand{\thefootnote}{\fnsymbol{footnote}}
+
+\newcommand{\postscript}[2]
+ {\setlength{\epsfxsize}{#2\hsize}
+  \centerline{\epsfbox{#1}}}
+
+\renewcommand{\baselinestretch}{1.0}
+
+\setlength{\oddsidemargin}{-0.365in}
+\setlength{\evensidemargin}{-0.365in}
+\setlength{\topmargin}{-0.3in}
+\setlength{\headheight}{0in}
+\setlength{\headsep}{0in}
+\setlength{\textheight}{10.1in}
+\setlength{\textwidth}{7in}
+\makeatletter \renewenvironment{proof}[1][Proof] {\par\pushQED{\qed}\normalfont\topsep6\p@\@plus6\p@\relax\trivlist\item[\hskip\labelsep\bfseries#1\@addpunct{.}]\ignorespaces}{\popQED\endtrivlist\@endpefalse} \makeatother
+\makeatletter
+\renewenvironment{solution}[1][Solution] {\par\pushQED{\qed}\normalfont\topsep6\p@\@plus6\p@\relax\trivlist\item[\hskip\labelsep\bfseries#1\@addpunct{.}]\ignorespaces}{\popQED\endtrivlist\@endpefalse} \makeatother
+\begin{document}
+\noindent
+
+\lstset{numbers=left,numberstyle=\tiny,commentstyle=\color{red!50!green!50!blue!50},frame=shadowbox, rulesepcolor=\color{red!20!green!20!blue!20},escapeinside=``,xleftmargin=2em,xrightmargin=2em, aboveskip=1em,breaklines=true}
+%\floatname{algorithm}{Solution}
+%========================================================================
+\noindent\framebox[\linewidth]{\shortstack[c]{
+\Large{\textbf{OS Project 1}}\vspace{1mm}\\
+Project for Computer Architecture \& Operating Systems by Chentao Wu, 2016 Autumn Semester}}
+
+~\\
+~\\
+\begin{large}
+\textbf{Project Step:}
+\end{large}
+~\\
+~\\
+\textbf{Part1 Preparation}
+\begin{enumerate}
+
+\item Build Ubuntu 12.04
+
+\quad The version of Ubuntu 12.04 kernel is 3.2.0-23.
+
+\item Download linux-2.6.38
+
+\quad Download kernel from http://www.kernel.org. I used the 2.6.38 version because I have heard that it is easier to manipulate.
+
+\item Open termination, input command in termination, get root power.
+\begin{lstlisting}[language=bash]
+sudo su
+\end{lstlisting} 
+
+\end{enumerate}
+~\\
+\textbf{Part2 Add a system call to the linux kernel}
+\begin{enumerate}
+
+\item Unzip the kernel
+\begin{lstlisting}[language=bash]
+mv linux-2.6.38.tar.bz2 /usr/src/
+cd /usr/src
+tar -jxvf linux-2.6.38.tar.bz2
+\end{lstlisting} 
+
+\quad Move the zip file to the "/usr/src"directory, where needs the root power. Then unzip it.
+
+\item Add the system call
+\begin{lstlisting}[language=bash]
+cd linux-2.6.38/kernel
+gedit sys.c
+\end{lstlisting}
+\quad open sys.c file, add header at the beginning of the file:
+\begin{lstlisting}[language=C]
+#include<linux/linkage.h>
+#include<linux/kernel.h>
+\end{lstlisting}
+\quad Add the code at the end of the file
+\begin{lstlisting}[language=C]
+asmlinkage int sys_helloworld(){
+	printk(KERN_EMERG "hello world!(by Yaowei Huang,Nov.2016)");
+	return 1;
+}
+\end{lstlisting}
+\quad And there I have made a small mistake..It's October now...
+
+\item Modify the pointer list
+\begin{lstlisting}[language=bash]
+cd /usr/src/linux-2.6.38/arch/x86/kernel
+gedit syscall_table_32.S
+\end{lstlisting} 
+\quad open syscall\_table\_32.S file, add the code at the end of it.
+\begin{lstlisting}[language=C]
+.long sys_helloworld
+\end{lstlisting}
+\begin{lstlisting}[language=bash]
+cd /usr/src/linux-2.6.38/arch/x86/include/asm
+gedit unistd_32.h
+\end{lstlisting}
+\quad open unistd\_32.h file, at the end of it add the code:
+\begin{lstlisting}[language=C]
+#define __NR_helloworld     341
+\end{lstlisting}
+\quad And change the code:
+\begin{lstlisting}[language=C]
+#define __NR_syscalls     341
+\end{lstlisting}
+\quad to
+\begin{lstlisting}[language=C]
+#define __NR_syscalls     342
+\end{lstlisting}
+\end{enumerate}
+~\\
+\textbf{Part 3 Compile the kernel}
+\begin{enumerate}
+\item Preparaion
+\begin{lstlisting}[language=bash]
+cd /usr/src/linux-2.6.38
+apt-get install build-essential kernel-package libncurses5-dev fakeroot
+\end{lstlisting}
+\item Compile
+\begin{lstlisting}[language=bash]
+make mrproper
+//it is alternative, to clean the compiler history
+make menuconfig
+//to generate a .config file
+make -j4
+//the command of compiling
+\end{lstlisting}
+\quad And then it was a long time to wait, I waited about two and a half hours.
+\end{enumerate}
+~\\
+\textbf{Part 4 Install the kernel}
+\begin{enumerate}
+\item Install kernel
+\begin{lstlisting}[language=bash]
+make modules_install
+make install
+\end{lstlisting}
+\item Make the new kernel to be loaded
+\begin{lstlisting}[language=bash]
+sudo mkinitramfs -o /book/initrd.img-2.6.38
+sudo update-initramfs -c -k 2.6.38
+sudo update-grub2
+\end{lstlisting}
+\quad The first command will create files like initrd.img-2.6.38 etc. under /boot list.
+
+\quad The second command will update the files corresponding to /lib/modules/2.6.32.63 files.
+\item Add chice to the grup list
+
+\quad Change the "GRUB\_HIDDEN\_TIMEOUT=0" in the file of /etc/default/grub to "GRUB\_HIDDEN\_TIMEOUT=4"
+
+\quad Change all "set timeout=0" in the file of /etc/grub.d/30\_os-prober to "set timeout=10".
+
+\quad Update grup2
+\begin{lstlisting}[language=bash]
+sudo update-grub2
+\end{lstlisting}
+\end{enumerate}
+~\\
+\textbf{Part 5 Reboot}
+
+\quad Reboot the ubuntu and choose to enter the 2.6.38 version kernel.
+
+\begin{large}
+~\\
+~\\
+\textbf{Validate}
+\end{large}
+
+\begin{lstlisting}[language=C] 
+#include<stdio.h>
+#include<unistd.h>
+#include<sys/syscall.h>
+
+#define SYS_helloworld   341   
+//same as defined before
+
+ int main(){
+	int tmp;
+	tmp=syscall(341);
+	printf("\n");
+	if(tmp==1){
+		printf("success!\n");
+	}
+	return 0;
+}
+\end{lstlisting}
+
+\quad Input command in termination 
+
+\begin{lstlisting}[language=bash] 
+gcc a.c
+ll a.c a.out
+./a.out
+dmesg -d
+\end{lstlisting}
+\begin{large}
+~\\
+~\\
+\textbf{Result}
+\end{large}
+
+The pictrue of result is as follows:
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\textwidth]{01.png}
+  \caption{Result}%\label{fig:digit}
+\end{figure}
+
+\begin{large}
+~\\
+~\\
+\textbf{The problem I have met}
+\end{large}
+
+The most difficult problem is the following error: 
+
+\quad\quad .size expression for apf\_fault does not evaluate to a constant
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\textwidth]{02.png}
+  \caption{Problem}%\label{fig:digit}
+\end{figure}
+
+And at first I didn't find this problem, because I was not using the command "make bzImage", then I found that the command "make -j4" runs very fast, which only needed about 10 minutes, much shorter than my roommates. Later I found I can't "make install".
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\textwidth]{03.png}
+  \caption{Problem}%\label{fig:digit}
+\end{figure}
+
+So I think there must be something wrong, and I searched the website to find more command to try, until I tried the "make bzImage" command to find the problem.
+
+  Fortunately, there's someone having solved this problem. I entered the website
+
+\quad\quad\quad\quad\quad http://blog.csdn.net/baozhb/article/details/9005150
+
+The solution is to modify two lines of codes (code mistake) in /.../arch/x86/kernel/entry\_32.S. And then the problem is solved quickly.
+
+What's more, I also have met a stupid problem that I didn't allocate enough virtual disks space to my Ubuntu...
+
+\begin{large}
+~\\
+~\\
+\textbf{Harvest}
+\end{large}
+
+Through this project I learned a lot knowledge about the kernel and how to add a  system call. Although I haven't done as the same as what the book recommend, but I think my way is as good too, which is more simple. The operating system is a very fun thing to manipulate, and solving problems makes me very proudable.
+%========================================================================
+\end{document}

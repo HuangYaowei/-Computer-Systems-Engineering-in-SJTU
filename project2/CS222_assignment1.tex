@@ -1,0 +1,420 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage{ctex}
+\usepackage{float}
+\usepackage{amsmath,amscd,amsbsy,amssymb,latexsym,url,bm,amsthm}
+\usepackage{epsfig,graphicx,subfigure}
+\usepackage{enumitem,balance,mathtools}
+\usepackage{wrapfig}
+\usepackage{mathrsfs, euscript}
+\usepackage[usenames]{xcolor}
+\usepackage{hyperref}
+%\usepackage{algorithm}
+\usepackage[T1]{fontenc}
+\usepackage{algorithmic}
+%\usepackage[vlined,ruled,commentsnumbered,linesnumbered]{algorithm2e}
+\usepackage[ruled,lined,boxed,linesnumbered]{algorithm2e}
+\usepackage{xcolor}
+\usepackage{listings}
+%\floatname{algorithm}{Solution}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{exercise}{Exercise}[section]
+\newtheorem*{solution}{Solution}
+
+\renewcommand{\thefootnote}{\fnsymbol{footnote}}
+
+\newcommand{\postscript}[2]
+ {\setlength{\epsfxsize}{#2\hsize}
+  \centerline{\epsfbox{#1}}}
+
+\renewcommand{\baselinestretch}{1.0}
+
+\setlength{\oddsidemargin}{-0.365in}
+\setlength{\evensidemargin}{-0.365in}
+\setlength{\topmargin}{-0.3in}
+\setlength{\headheight}{0in}
+\setlength{\headsep}{0in}
+\setlength{\textheight}{10.1in}
+\setlength{\textwidth}{7in}
+\makeatletter \renewenvironment{proof}[1][Proof] {\par\pushQED{\qed}\normalfont\topsep6\p@\@plus6\p@\relax\trivlist\item[\hskip\labelsep\bfseries#1\@addpunct{.}]\ignorespaces}{\popQED\endtrivlist\@endpefalse} \makeatother
+\makeatletter
+\renewenvironment{solution}[1][Solution] {\par\pushQED{\qed}\normalfont\topsep6\p@\@plus6\p@\relax\trivlist\item[\hskip\labelsep\bfseries#1\@addpunct{.}]\ignorespaces}{\popQED\endtrivlist\@endpefalse} \makeatother
+\begin{document}
+\noindent
+
+\lstset{numbers=left,numberstyle=\tiny,commentstyle=\color{red!50!green!50!blue!50},frame=shadowbox, rulesepcolor=\color{red!20!green!20!blue!20},escapeinside=``,xleftmargin=2em,xrightmargin=2em, aboveskip=1em,breaklines=true}
+%\floatname{algorithm}{Solution}
+%========================================================================
+\noindent\framebox[\linewidth]{\shortstack[c]{
+\Large{\textbf{OS Project 2 - UNIX Shell and History Feature}}\vspace{1mm}\\
+Project for Computer Architecture \& Operating Systems by Chentao Wu, 2016 Autumn Semester}}
+~\\
+~\\
+\begin{large}
+\textbf{1. Project Introduction:}
+\end{large}
+~\\
+
+
+This project consists of modifying a C program which serves as a shell interface that accepts user commands and then executes each command in a separate process. This program is composed of three functions: main(), handle-SIGINT() and setup(). 
+
+The setup() function reads in the user's next command (which can be add to 80 characters), and then parses it into separate tokens that are used to fill the argument vector for the command to be executed.
+
+The handle-SIGINT() function handles the SIGINT signal. This function prints out the message''Caught Control C" and then invokes the e x i t () function to terminate the program.
+
+The main() function presents the prompt COMMAND-> and then invokes setup() , which waits for the user to enter a command. The contents of the command entered by the user is loaded into the args array.
+~\\
+~\\
+\begin{large}
+\textbf{2. Project Environment:}
+\end{large}
+~\\
+
+VirtualBox with Linux Ubuntu 16.04.
+~\\
+~\\
+\begin{large}
+\textbf{3. Project Realization:}
+\end{large}
+~\\
+
+There're four functions: main(), setup(), handle\_SIGINT(), ProcessRCommand().
+
+~\\
+ \textbf{Part1 main() function}
+
+The main() function is the entry of this program. There're three steps taken by main() function.
+
+(1) Allocate the momory to history array which saves the latest command.
+
+(2) Set up the signal handler
+
+(3) loop the following step until we receive <Contorl + D>
+
+\quad 1) Use setup() function to read the command.
+
+\quad 2) Make judgement of which if the command is "r" or "r+x" 
+
+\quad 3) Fork a child process using fork()
+
+\quad 4) If the background == 1, the parent will wait,otherwise it will invoke the setup() function again.
+
+\begin{lstlisting}[language=C]
+int main(void){
+    int i, j;
+    int * res = mmap(NULL,sizeof(i),PROT_READ|PROT_WRITE,MAP_SHARED|MAP_ANONYMOUS,-1,0);
+    char inputBuffer[MAX_LINE]; // buffer to hold the command entered 
+    int background;             // equals 1 if a command is followed by '&' 
+    char *args[MAX_LINE/2 + 1];   // command line arguments 
+    int count;
+    *res = 1;
+
+    for(i = 0; i < 10; ++i)
+        for(j = 0; j < 10; ++j)
+            history[i][j] = (char*)malloc(80*sizeof(char));   //Allocate the memory
+
+    strcpy(buffer,"Caught Control C\n");
+    if (signal(SIGINT, handle_SIGINT) == SIG_ERR) //Error
+        printf("ERROR!\n");
+
+    while (1){             // Program terminates normally inside setup
+        *res = 1;
+        background = 0;
+        printf("COMMAND-> ");
+        fflush(0);
+        setup(inputBuffer, args, &background);       // get next command
+        i = 0;
+        if (args[0] == NULL) continue;
+        if (args[0] != NULL && strcmp(args[0],"r") != 0){
+            while(args[i] != NULL){
+                strcpy(history[nextPosition][i], args[i]);
+                ++i;
+            }
+            CommandLenth[nextPosition] = i;
+            nextPosition = (nextPosition + 1) % 10;
+        }
+
+        //Deal with the "r" command
+        if (strcmp(args[0],"r") == 0){
+            if (args[1]==NULL){     //"r" command only
+                i = (nextPosition + 9) % 10;
+                for(j=0; j<CommandLenth[i]; ++j)
+                    strcpy(history[nextPosition][j], history[i][j]);
+                
+                CommandLenth[nextPosition] = j;
+                nextPosition = (nextPosition + 1) % 10;
+                flag =1;
+            }
+            else{                   //"r x" command
+                i = nextPosition;
+                count = 10;
+                while(count--){
+                    i = (i + 9) % 10;
+                    if (strncmp(args[1], history[i][0], 1) == 0){
+                        for(j=0; j<CommandLenth[i]; ++j)
+                            strcpy(history[nextPosition][j], history[i][j]);
+                            
+                        CommandLenth[nextPosition] = j;
+                        nextPosition = (nextPosition + 1) % 10;
+                        flag=1;
+                        break;
+                    }
+                }
+                if(count == -1){
+                    printf("No such instruction!\n");
+                       continue;
+                }
+            }
+        }
+        pid_t pid = fork();
+    //pid_t pid;
+        if(pid < 0){
+            printf("Fork failed.\n");
+        }
+        else if(pid == 0){                 //Child Process
+            if(strcmp(args[0],"r") == 0){
+                ProcessRCommand(args);
+                exit(0);
+            }
+            else{
+                execvp(args[0],args);
+                int s = (nextPosition -1) % 10;
+                *res = 2;
+                printf("Wrong Instruction!!!\n");
+                exit(0);
+            }
+        }
+        else{                             //Parent Process
+            if(background == 1)
+                continue;
+            pid_t rpid;
+            do{
+                rpid = wait(NULL);
+                if(*res == 2){
+                    CommandLenth[nextPosition-1] = 0;
+                    nextPosition = nextPosition - 1;
+                    if (nextPosition == -1) nextPosition = 9;
+                    int idx;
+                    for (idx = 0; idx < 10; ++idx)
+                        strcpy(history[nextPosition][idx], "\0");
+                        
+                    *res = 1;
+                }
+            } while (rpid != pid);
+        }
+    }
+}
+\end{lstlisting}
+
+~\\
+\textbf{Part2 setup() function}
+
+The setup() function reads in the next command line, separating it into distinct tokens using whitespace as delimiters. 
+
+\begin{lstlisting}[language=C]
+void setup(char inputBuffer[], char *args[], int *background){
+    int length, i, start, ct;
+    ct = 0;
+    length = read(STDIN_FILENO, inputBuffer, MAX_LINE);
+    start = -1;
+    if (length == 0)        // If Ctrl+D is entered, end the user command stream 
+        exit(0);
+    if (inputBuffer[0]=='e' && inputBuffer[1]=='x' && inputBuffer[2]=='i' && inputBuffer[3]=='t' && 
+    inputBuffer[4]=='(' && inputBuffer[5]==')' && inputBuffer[6]=='\n')
+    exit(0);
+    if (length < 0){
+        perror("Failed in reading the command");
+        exit(-1);
+    }
+
+    // examine every character in the inputBuffer
+    for (i = 0; i < length; i++){
+        switch (inputBuffer[i]){
+            case ' ':
+            case '\t':               // argument separators
+                if(start != -1){
+                    args[ct] = &inputBuffer[start];    // set up pointer
+                    ct++;
+                }
+                inputBuffer[i] = '\0'; // add a null char; make a C string
+                start = -1;
+                break;
+
+            case '\n':                 // should be the final char examined
+                if (start != -1){
+                    args[ct] = &inputBuffer[start];
+                    ct++;
+                }
+                inputBuffer[i] = '\0';
+                args[ct] = NULL; //no more arguments to this command
+                break;
+
+            case '&':
+                *background = 1;
+                inputBuffer[i] = '\0';
+                break;
+
+            default:             // some other character
+                if (start == -1)
+                    start = i;
+        }
+    }
+    args[ct] = NULL; // just in case the input line was > 80
+}
+\end{lstlisting}
+~\\
+\textbf{Part 3 handle\_SIGINT() function}
+
+The handle\_SIGINT() function lets the program catch the "control + C" to print the latest 10 command on the shell. 
+
+\begin{lstlisting}[language=C]
+void handle_SIGINT()
+{
+    write(STDOUT_FILENO, buffer, strlen(buffer));
+    printf("Command history:\n");
+    int i = nextPosition;
+    int j;
+    int counter = 10;
+
+    while(counter--){
+        printf("%d\t",counter+1);
+        for(j = 0; j < CommandLenth[i]; ++j)
+            printf("%s ", history[i][j]);
+
+        printf("\n");
+        i = (i + 1) % 10;
+    }
+    printf("COMMAND->");
+    fflush(0);
+    return;
+}
+\end{lstlisting}
+
+
+~\\
+\textbf{Part 4 ProcessRCommand() function}
+
+The ProcessRCommand() function deal with the command "r" and "r+x". The "r" command recalls the latest command. 
+The "r+x" command runs any of the previous 10 commands where 'x' is the first letter of that command. And they will be echoed on the user's screen and the command is also placed in the history buffer as the next command.
+
+\begin{lstlisting}[language=C]
+void ProcessRCommand(char *args[])
+{
+    int i, j, count = 10;
+    char *newargs[MAX_LINE/2 + 1];    //A copy of array history
+    for(i = 0; i < MAX_LINE/2 + 1; ++i)
+        newargs[i] = (char*)malloc((MAX_LINE/2+1)*sizeof(char));  //Allocate the memory
+    if (flag == 1)
+        nextPosition = (nextPosition - 1) % 10;
+
+    history[nextPosition][0] = '\0';
+    if (args[1] == NULL){                            //command "r"
+        i = (nextPosition + 9) % 10;              //points to the command to be executed
+        for(j = 0; j < CommandLenth[i]; ++j)
+            strcpy(newargs[j], history[i][j]);
+
+        newargs[j] = NULL;
+        execvp(newargs[0], newargs);
+        printf("Wrong Instruction!\n");
+        exit(0);
+    }
+    else{                //Command "r x"
+        i = nextPosition;
+        while(count--){ 
+            //Find the nearest command begin with "x"
+            i = (i + 9) % 10;
+            if (strncmp(args[1], history[i][0], 1) == 0){
+                printf("%s\t%s\n", args[1], history[i][0]);
+                for(j = 0; j < CommandLenth[i]; ++j)
+                    strcpy(newargs[j], history[i][j]);
+
+                newargs[j] = NULL;
+                execvp(newargs[0], newargs);
+                printf("Wrong Instruction!\n");
+                exit(0);
+            }
+        }
+        printf("No such instruction!\n"); //There is no command start with "x"
+    }
+}
+\end{lstlisting}
+~\\
+~\\
+\begin{large}
+\textbf{4. Project Result:}
+\end{large}
+
+\begin{enumerate}
+
+\item Some simple command
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\textwidth]{01.png}
+  \caption{Result: simple command}%\label{fig:digit}
+\end{figure}
+\item Control + C
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\textwidth]{02.png}
+  \caption{Result: Control + C}%\label{fig:digit}
+\end{figure}
+\item r Type
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\textwidth]{03.png}
+  \caption{Result: r + "x"}%\label{fig:digit}
+\end{figure}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\textwidth]{05.png}
+  \caption{Result: r}%\label{fig:digit}
+\end{figure}
+
+\item \& run concurrently
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\textwidth]{06.png}
+  \caption{Result: \& run concurrently}%\label{fig:digit}
+\end{figure}
+
+\item exit()
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\textwidth]{07.png}
+  \caption{Result: exit()}%\label{fig:digit}
+\end{figure}
+\item Wrong Instruction
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\textwidth]{08.png}
+  \caption{Result: Wrong Instruction}%\label{fig:digit}
+\end{figure}
+\end{enumerate}
+
+\begin{large}
+~\\
+~\\
+\textbf{The problem I have met}
+\end{large}
+
+I have met many problems,such as:
+
+(1)When I entered Control + C , there will be two history feature on the screen, which means the handle\_SIGINT() function was run twice, after I checked the code I found that it was the child process and parent process both catching the signal. And if the process is failed, the child process should exist, the problem was solved quickly.
+
+(2)At first I did't achieve the function of communication between the child process and parent process, and  parent process can't know if the command of child is true or false, and I used shared memory to solve it. 
+
+(3)The cd and exit command can not be executed, after google I  found it is beacuse that the execvp() function don't have these two commands, and if we want to solve it we could achive it by adding the extra discrimination  by strcpy() at the outside, but it will add to extra expense.
+\begin{large}
+~\\
+~\\
+\textbf{Harvest}
+\end{large}
+
+Through this project I learned a lot knowledge about shell and how to executed a command through the shell.  And the communication between the child process and parent process was really a problem when doing this project. Fortunately at last I solved it. The operating system is a very fun thing to manipulate, and solving problems makes me very proudable.
+%========================================================================
+\end{document}

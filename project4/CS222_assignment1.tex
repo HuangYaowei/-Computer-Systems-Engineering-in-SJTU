@@ -1,0 +1,651 @@
+\documentclass[12pt,a4paper]{article}
+\usepackage{ctex}
+\usepackage{float}
+\usepackage{amsmath,amscd,amsbsy,amssymb,latexsym,url,bm,amsthm}
+\usepackage{epsfig,graphicx,subfigure}
+\usepackage{enumitem,balance,mathtools}
+\usepackage{wrapfig}
+\usepackage{mathrsfs, euscript}
+\usepackage[usenames]{xcolor}
+\usepackage{hyperref}
+%\usepackage{algorithm}
+\usepackage[T1]{fontenc}
+\usepackage{algorithmic}
+%\usepackage[vlined,ruled,commentsnumbered,linesnumbered]{algorithm2e}
+\usepackage[ruled,lined,boxed,linesnumbered]{algorithm2e}
+\usepackage{xcolor}
+\usepackage{listings}
+%\floatname{algorithm}{Solution}
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{proposition}[theorem]{Proposition}
+\newtheorem{corollary}[theorem]{Corollary}
+\newtheorem{exercise}{Exercise}[section]
+\newtheorem*{solution}{Solution}
+
+\renewcommand{\thefootnote}{\fnsymbol{footnote}}
+
+\newcommand{\postscript}[2]
+ {\setlength{\epsfxsize}{#2\hsize}
+  \centerline{\epsfbox{#1}}}
+
+\renewcommand{\baselinestretch}{1.0}
+
+\setlength{\oddsidemargin}{-0.365in}
+\setlength{\evensidemargin}{-0.365in}
+\setlength{\topmargin}{-0.3in}
+\setlength{\headheight}{0in}
+\setlength{\headsep}{0in}
+\setlength{\textheight}{10.1in}
+\setlength{\textwidth}{7in}
+\makeatletter \renewenvironment{proof}[1][Proof] {\par\pushQED{\qed}\normalfont\topsep6\p@\@plus6\p@\relax\trivlist\item[\hskip\labelsep\bfseries#1\@addpunct{.}]\ignorespaces}{\popQED\endtrivlist\@endpefalse} \makeatother
+\makeatletter
+\renewenvironment{solution}[1][Solution] {\par\pushQED{\qed}\normalfont\topsep6\p@\@plus6\p@\relax\trivlist\item[\hskip\labelsep\bfseries#1\@addpunct{.}]\ignorespaces}{\popQED\endtrivlist\@endpefalse} \makeatother
+\begin{document}
+\noindent
+
+\lstset
+{
+	basicstyle=\ttfamily,
+	numbers=left,
+	keywordstyle=\color[RGB]{0,0,255},
+	commentstyle=\color[RGB]{0,128,0},
+	frame=shadowbox,
+	rulesepcolor=\color{red!20!green!20!blue!20},
+	showspaces=false,
+	extendedchars=false,
+	showtabs=false,
+	tabsize=4, breaklines
+}
+
+%\floatname{algorithm}{Solution}
+%========================================================================
+\noindent\framebox[\linewidth]{\shortstack[c]{
+\Large{\textbf{OS Project 4 : Producer-Consumer Problem }}\vspace{1mm}\\
+Project for Computer Architecture \& Operating Systems by Chentao Wu, 2016 Autumn Semester}}
+~\\
+~\\
+\begin{large}
+\textbf{1. Project Introduction:}
+\end{large}
+~\\
+
+In Chapter 3, we developed a model of a system consisting of cooperating sequential processes or threads, all running asynchronously and possibly sharing data. We illustrated this model with the producer-consumer problem, which is representative of operating systems. Specifically, in Section 3.4.1, we described how a bounded buffer could be used to enable processes to share memory. 
+
+Let us return to our consideration of the bounded buffer. As we pointed out, our solution allows at most BUFFER.SIZE - 1 items in the buffer at the same time. Suppose we want to modify the algorithm to remedy this deficiency. One possibility is to add an integer variable counter, initialized to 0. counter is incremented every time we add a new item to the buffer and is decremented every time we remove one item from the buffer. The code for the producer process and consumer process can be modified as follows:
+
+\begin{algorithm}[H]
+  \SetAlgoLined
+  \SetKwFunction{max}{max}
+  \SetKwInOut{Input}{input}\SetKwInOut{Output}{output}
+  
+  \BlankLine
+  
+  \While{True}{
+\tcp{ produce an item in nextProduced }
+    \While{$counter ==  BUFFER\_SIZE$}{
+	;\tcp{do nothing}
+}
+    $buffer[in] = nextProduced;$
+
+    $in = (in + 1) \% BUFFER\_SIZE; $
+
+    $counter++;$
+
+  }
+  \caption{The producer process}
+  \end{algorithm}
+
+\begin{algorithm}[H]
+  \SetAlgoLined
+  \SetKwFunction{max}{max}
+  \SetKwInOut{Input}{input}\SetKwInOut{Output}{output}
+  
+  \BlankLine
+  
+  \While{True}{
+
+    \While{$counter ==  0$}{
+	;\tcp{do nothing}
+}
+    $nextConsumed = buffer [out] ;$
+
+    $out = (out + 1) \% BUFFER\_SIZE; $
+
+    $counter--;$\
+
+\tcp{consume the item in nextConsumed }
+  }
+  \caption{The consumer process}
+  \end{algorithm}
+
+~\\
+~\\
+\begin{large}
+\textbf{2. Project Environment:}
+\end{large}
+~\\
+
+VirtualBox with Linux Ubuntu 16.04.
+
+Windows 10 
+~\\
+~\\
+\begin{large}
+\textbf{3. Project Realization:}
+\end{large}
+~\\
+
+In our solutions to the problems, we use semaphores for synchronization.
+
+\begin{algorithm}[H]
+  \SetAlgoLined
+  \SetKwFunction{max}{max}
+  \SetKwInOut{Input}{input}\SetKwInOut{Output}{output}
+  
+  \BlankLine
+  
+  \While{True}{
+...
+
+\tcp{ produce an item  in nextp }
+
+...
+
+    wait(empty); 
+
+	wait(mutex);
+
+...
+
+\tcp{ add nextp to buffer }
+
+...
+
+signal(mutex); 
+
+signal(full); 
+  }
+ 
+ \caption{The structure of the producer process}
+  \end{algorithm}
+
+
+\begin{algorithm}[H]
+  \SetAlgoLined
+  \SetKwFunction{max}{max}
+  \SetKwInOut{Input}{input}\SetKwInOut{Output}{output}
+  
+  \BlankLine
+  
+
+  \While{True}{
+    wait((full); 
+
+	wait(mutex);
+
+...
+
+\tcp{ remove an item from buffer to nextc }
+
+...
+
+signal(mutex); 
+
+signal(empty);
+
+...
+
+\tcp{ consume the item in nextc }
+
+...
+ 
+ }
+  \caption{The structure of the consumer process}
+  \end{algorithm}
+
+~\\
+
+
+ \textbf{Part1 The Buffer }
+
+Internally, the buffer will consist of a fixed-size array of type buffer\_item (which will be defined using a typef def). The array of buffer\_item objects will be manipulated as a circular queue. The definition of buffer\_item, along with the size of the buffer, can be stored in a header file such as the following:
+
+
+\begin{lstlisting}[language=C++]
+/* buffer.h */ 
+typedef int buffer.item; 
+#define BUFFER_SIZE 5
+
+\end{lstlisting}
+
+The buffer will be manipulated with two functions, insert\_item() and remove\_item(), which are called by the producer and consumer threads, respectively. A code outlining these functions appears as:
+
+\begin{lstlisting}[language=C++]
+
+/* the buffer */ 
+buffer_item buffer [BUFFER_SIZE] ;
+
+int ready_pro = 0, ready_con = 0;
+
+int insert_item(buffer_item item){
+	/* insert item into buffer 
+	return 0 if successful, otherwise 
+	return -1 indicating an error condition */
+	try{
+		buffer[ready_pro%5] = item;
+		ready_pro = (ready_pro+1);
+		printf("Insert successfully.\n");
+		printf("The buffer is:");
+		//output the number in buffer
+		for(int j = ready_con; j< ready_pro;++j){   
+			printf(" %d",buffer[j%5]);
+		}
+		printf("\n");
+		return 0;
+	}
+	catch(exception e){
+		printf("some error in inserting item occurs.");
+		return -1;
+	}
+}
+
+int remove_item(buffer_item *item){
+	/* remove an object from buffer 
+	placing it in item 
+	return 0 if successful, otherwise 
+	return -1 indicating an error condition */
+
+	try{
+		ready_con++;
+		printf("remove %d successfully.\n",*item);
+		printf("The buffer is:");
+		//output the number in buffer
+		for(int j = ready_con; j< ready_pro;++j){    	
+			printf(" %d",buffer[j%5]);
+		}
+		printf("\n");
+		return 0;
+	}
+	catch(exception e){
+		printf("some error in removing item occurs.");
+		return -1;
+	}
+}
+\end{lstlisting}
+
+The insert\_item() and remov\_item() functions will synchronize the producer and consumer using the algorithms before. The buffer will also require an initialization function that initializes the mutualexclusion object mutex along with the empty and full semaphores. 
+
+~\\
+\textbf{Part2 main() function}
+
+The main() function will initialize the buffer and create the separate producer and consumer threads. Once it has created the producer and consumer threads, the mainO function will sleep for a period of time and, upon awakening, will terminate the application. The mainO function will be passed three parameters on the command line:
+
+1. How long to sleep before terminating
+
+2. The number of producer threads
+
+3. The number of consumer threads
+
+\begin{lstlisting}[language=C++]
+int main(){
+	//1. Get command line arguments argv[1], argv[2], argv[3]
+	int p, c, time;
+	scanf("%d%d%d",&time,&p,&c);
+
+	//2. Initialize buffer	
+	init_semaphores();
+	
+
+	pthread_attr_t attr;
+	pthread_attr_init(&attr);
+	pthread_attr_t attr1;
+	pthread_attr_init(&attr1);
+	//3. Create producer thread(s)
+	pthread_t pro[p];
+	int pthread_num[p];
+	
+	for(int i=0;i<p;++i){
+		pthread_num[i] = i;
+		pthread_create(&pro[i],&attr,producer,&pthread_num[i]);
+		printf("Initializing producer %d successfully.\n",i );
+	}
+	//4. Create consumer thread(s)
+	pthread_t con[c];
+	int con_num[c];
+	for(int i=0;i<c;++i){
+		con_num[i] = i;
+		pthread_create(&con[i],&attr,consumer,&con_num[i]);
+		printf("Initializing comsumer %d successfully.\n",i );
+	}	
+	//5. sleep
+	sleep(time);
+	
+	//6. Exit
+	printf("Exit.\n");	
+	return 0;
+}
+\end{lstlisting}
+
+~\\
+\textbf{Part3 Producer and Consumer Threads }
+
+The producer thread will alternate between sleeping for a random period of time and inserting a random integer into the buffer. Random numbers will
+be produced using the rand() function, which produces random irttegers between 0 and RANDMAX. The consumer will also sleep for a random period of time and, upon awakening, will attempt to remove an item from the buffer. An outline of the producer and consumer threads appears as:
+
+\begin{lstlisting}[language=C++]
+void *producer(void *param){
+	buffer_item ran;
+	int id = *(int *) param;
+	time_t t = pthread_self();
+	srand(time(&t));
+	
+	while(1){
+		//sleep for a random period of time 
+		int time = rand() %6 +1;
+		sleep(time);
+		//generate a random number
+		sem_wait(&empty);
+		sem_wait(&mutex);// block it until it is greater than 0, and then --mutex 
+		printf("Producer %d Sleeping time: %d\n", id, time);
+		ran = rand() ;
+		printf("Producer %d produced %d \n",id,ran);
+		if(insert_item(ran)){
+			printf("report error condition");
+		}
+		printf("\n");
+	//	sleep(5);
+		sem_post(&mutex); //++mutex, it's an atomic transaction
+		sem_post(&full);
+	
+	}
+}
+
+void *consumer (void *param){
+	buffer_item ran;
+	int id =  *(int *)param;
+	
+	while(1){
+		//sleep for a random period of time 
+		int time = rand() %6 +1;
+		sleep(time);
+		sem_wait(&full);
+		sem_wait(&mutex);// block it until it is greater than 0, and then --mutex  
+		printf("Consumer %d Sleeping time: %d\n", id, time);
+		ran = buffer[ready_con%5];
+		
+		printf("Consumer %d starting removing: %d\n", id, ran);
+		if(remove_item(&ran)){
+			printf("report error condition");
+		}
+		printf("\n");
+	//	sleep(5);
+		sem_post(&mutex); //++mutex, it's an atomic transaction
+		sem_post(&empty);
+	}
+
+}
+
+\end{lstlisting}
+
+~\\
+\textbf{Part4 Pthreads Semaphores }
+
+Pthreads provides two types of semaphores-named and unnamed. For this project, we use unnamed semaphores. 
+ The code below illustrates how a semaphore is created:
+
+\begin{lstlisting}[language=C++]
+void init_semaphores()
+{
+	printf("Initializing semaphores\n");
+	// 1. A pointer to the semaphore.
+	// 2. A flag indicating the level of sharing. \
+	      0 means this semaphore can only be shared by threads\
+	      belonging to the same process that created the semaphore.
+	// 3. The semaphore's initial value.
+	sem_init(&full, 0, 0);
+	sem_init(&empty, 0, BUFFER_SIZE);
+	sem_init(&mutex, 0, 1);
+	printf("Semaphore created successfully.\n");
+}
+
+\end{lstlisting}
+
+
+~\\
+~\\
+\begin{large}
+\textbf{4. Project Result:}
+\end{large}
+I made some simple tests:
+\begin{enumerate}
+
+\item Creating 5 producer and 10 consumer in linux.
+
+When the consumer's number is greater than producer's, the buffer will always be empty.
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.6\textwidth]{result1.png}
+  \caption{Result: Creating 5 producer and 10 consumer in linux.}%\label{fig:digit}
+\end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.6\textwidth]{result2.png}
+  \caption{Result: Creating 5 producer and 10 consumer in linux.}%\label{fig:digit}
+\end{figure}
+
+
+\item  Creating 10 producer and 5 consumer in linux.
+
+When the producer's number is greater than consumer's, the buffer will always be full.
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.6\textwidth]{result3.png}
+  \caption{Result: Creating 10 producer and 5 consumer in linux.}%\label{fig:digit}
+\end{figure}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.6\textwidth]{result4.png}
+  \caption{Result: Creating 10 producer and 5 consumer in linux.}%\label{fig:digit}
+\end{figure}
+
+\end{enumerate}
+
+\begin{large}
+~\\
+~\\
+\textbf{5. The problem I have met}
+\end{large}
+
+I have spent the most time at creating the random number in windows, the code in windows is the same to the one in the linux, but I have found that the random number created by producer process will always be the same at a time. Like this:
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=1\textwidth]{result5.png}
+  \caption{Result: problem in windows.}%\label{fig:digit}
+\end{figure}
+
+And I have thought a lot of method to solve it, like use pthread\_self() or random number in main thread to be the seed of the srand(time(\&t)) of other thread, but it didn't work.I think it may due to the random mechanism in windows. The time seed is the thread's running time rather than the current system's time, so in each thread the random number created are the same.  
+
+\begin{large}
+~\\
+~\\
+\textbf{6. Harvest}
+\end{large}
+
+Through this project I learned a lot knowledge about process synchronization and how to use semaphore to realize it. And dealing with the Producer-Consumer problem makes me understand the synchronization more deeply. The operating system is a very fun thing to manipulate, and solving problems makes me very proudable.
+
+
+\begin{large}
+~\\
+~\\
+\textbf{7. Code}
+\end{large}
+\begin{lstlisting}[language=C++]
+#include <stdlib.h>
+#include <stdio.h>
+#include <pthread.h>
+#include <semaphore.h>
+#include <unistd.h>
+#include <time.h>
+#include <iostream>
+
+using namespace std;
+
+typedef int buffer_item;
+#define BUFFER_SIZE 5
+
+buffer_item buffer[BUFFER_SIZE];
+
+sem_t full, empty, mutex;
+
+void init_semaphores()
+{
+	printf("Initializing semaphores\n");
+	// 1. A pointer to the semaphore.
+	// 2. A flag indicating the level of sharing. \
+	      0 means this semaphore can only be shared by threads\
+	      belonging to the same process that created the semaphore.
+	// 3. The semaphore's initial value.
+	sem_init(&full, 0, 0);
+	sem_init(&empty, 0, BUFFER_SIZE);
+	sem_init(&mutex, 0, 1);
+	printf("Semaphore created successfully.\n");
+}
+
+int ready_pro = 0, ready_con = 0;
+int insert_item(buffer_item item){
+	try{
+		buffer[ready_pro%5] = item;
+		ready_pro = (ready_pro+1);
+		printf("Insert successfully.\n");
+		printf("The buffer is:");
+		for(int j = ready_con; j< ready_pro;++j){
+			printf(" %d",buffer[j%5]);
+		}
+		printf("\n");
+		return 0;
+	}
+	catch(exception e){
+		printf("some error in inserting item occurs.");
+		return -1;
+	}
+}
+
+void *producer(void *param){
+	buffer_item ran;
+	//sem_wait(&mutex);
+	int id = *(int *) param;
+	printf("Producer %d seed %lu \n",id,pthread_self());
+	time_t t = pthread_self()%10000;
+	srand(time(&t));
+	//sem_post(&mutex);
+	while(1){
+		//sleep for a random period of time 
+		int time = rand() %6 +1;
+		sleep(time);
+		//generate a random number
+		sem_wait(&empty);
+		sem_wait(&mutex);// block it until it is greater than 0, and then --mutex
+		printf("Producer %d Sleeping time: %d\n", id, time);
+		ran = rand() ;
+		printf("Producer %d produced %d \n",id,ran);
+		if(insert_item(ran)){
+			printf("report error condition");
+		}
+		printf("\n");
+	//	sleep(5);
+		sem_post(&mutex); //++mutex, it's an atomic transaction
+		sem_post(&full);
+	
+	}
+}
+
+int remove_item(buffer_item *item){
+	try{
+		ready_con++;
+		printf("remove %d successfully.\n",*item);
+		printf("The buffer is:");
+		for(int j = ready_con; j< ready_pro;++j){
+			printf(" %d",buffer[j%5]);
+		}
+		printf("\n");
+		return 0;
+	}
+	catch(exception e){
+		printf("some error in removing item occurs.");
+		return -1;
+	}
+}
+
+void *consumer (void *param){
+	buffer_item ran;
+	int id =  *(int *)param;
+	
+	
+	while(1){
+		//sleep for a random period of time 
+		int time = rand() %6 +1;
+		sleep(time);
+		sem_wait(&full);
+		sem_wait(&mutex);// block it until it is greater than 0, and then --mutex 
+		printf("Consumer %d Sleeping time: %d\n", id, time);
+		ran = buffer[ready_con%5];
+		
+		printf("Consumer %d starting removing: %d\n", id, ran);
+		if(remove_item(&ran)){
+			printf("report error condition");
+		}
+		printf("\n");
+	//	sleep(5);
+		sem_post(&mutex); //++mutex, it's an atomic transaction
+		sem_post(&empty);
+	}
+
+}
+
+
+int main(){
+	//1. Get command line arguments argv[1], argv[2], argv[3]
+	int p, c, time;
+	scanf("%d%d%d",&time,&p,&c);
+
+	pthread_attr_t attr;
+	pthread_attr_init(&attr);
+	pthread_attr_t attr1;
+	pthread_attr_init(&attr1);
+	//2. Initialize buffer	
+	init_semaphores();
+	
+	//3. Create producer thread(s)
+	pthread_t pro[p];
+	int pthread_num[p];
+	
+	for(int i=0;i<p;++i){
+		pthread_num[i] = i;
+		pthread_create(&pro[i],&attr,producer,&pthread_num[i]);
+		printf("Initializing producer %d successfully.\n",i );
+	}
+	//4. Create consumer thread(s)
+	pthread_t con[c];
+	int con_num[c];
+	for(int i=0;i<c;++i){
+		con_num[i] = i;
+		pthread_create(&con[i],&attr,consumer,&con_num[i]);
+		printf("Initializing comsumer %d successfully.\n",i );
+	}	
+	//5. sleep
+	sleep(time);
+	
+	//6. Exit
+	printf("Exit.\n");	
+	return 0;
+}
+
+\end{lstlisting}
+
+
+
+
+%========================================================================
+\end{document}
